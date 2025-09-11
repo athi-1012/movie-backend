@@ -1,59 +1,122 @@
 import express from "express";
-import { MongoClient } from 'mongodb';
-import { ObjectId } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
+import cors from "cors";
+import dotenv from "dotenv";
 
-const app=express();
-const url="mongodb+srv://athiraasok1012:mongodbpassword@athi.2hmmwvj.mongodb.net/?retryWrites=true&w=majority&appName=Athi"
-const client =new MongoClient(url);
+dotenv.config();
+
+const app = express();
+const client = new MongoClient(process.env.MONGO_URI);
+
 await client.connect();
-console.log("Database connected succesfully");
+console.log("✅ Database connected successfully");
 
-app.use(express.json());
+app.use(express.json()); // parsing request bodies
+app.use(cors());
 
-app.get("/",function(request,response){
-    response.send("hellooo")
-});
-app.post("/post",async function(request,response){
-    const getPostman=request.body;
-    const sendMethod=await client.db("CRUD").collection("data").insertOne(getPostman);
-    response.send(sendMethod);
-   
-});
-app.post("/postmany",async function(request,response){
-    const getMany=request.body;
-    const sendMethod=await client.db("CRUD").collection("data").insertMany(getMany);
-    response.send(sendMethod);
+// Home route
+app.get("/", (req, res) => {
+  res.status(200).send("Hello, Backend is running 🚀");
 });
 
-app.get("/get",async function(request,response){
-    const getMethod = await client.db("CRUD").collection("data").find({}).toArray();
-        response.send(getMethod);
-
+// Insert one movie
+app.post("/post", async (req, res) => {
+  try {
+    const getPostman = req.body;
+    const result = await client.db("CRUD").collection("data").insertOne(getPostman);
+    res.status(201).send(result);
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
 });
 
-app.get("/getone/:id",async function(request,response){
-    const{id}=request.params;
-    const getMethod=await client.db("CRUD").collection("data").findOne({
-        _id:new ObjectId(id)
+// Insert many
+app.post("/postmany", async (req, res) => {
+  try {
+    const getMany = req.body;
+    const result = await client.db("CRUD").collection("data").insertMany(getMany);
+    res.status(201).send(result);
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
+});
+
+// Get all movies
+app.get("/get", async (req, res) => {
+  try {
+    const result = await client.db("CRUD").collection("data").find({}).toArray();
+    res.status(200).send(result);
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
+});
+
+// Get one movie
+app.get("/getone/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await client.db("CRUD").collection("data").findOne({
+      _id: new ObjectId(id),
     });
-    response.send(getMethod);
-
+    res.status(200).send(result);
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
 });
 
-app.put("/update/:id",async function(request,response){
-    const{id}=request.params;
-    const getPostman=request.body;
-    const updateMethod=await client.db("CRUD").collection("data").updateOne({_id:new ObjectId(id)},{$set:getPostman});
-    response.send(updateMethod);
-
+// Update movie
+app.put("/update/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const getPostman = req.body;
+    const result = await client
+      .db("CRUD")
+      .collection("data")
+      .updateOne({ _id: new ObjectId(id) }, { $set: getPostman });
+    res.status(200).send(result);
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
 });
 
-app.delete("/delete/:id",async function(request,response){
-    const {id}=request.params;
-    const deleteMethod=await client.db("CRUD").collection("data").deleteOne({_id:new ObjectId(id)});
-    response.send(deleteMethod);
+// Delete movie
+app.delete("/delete/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await client.db("CRUD").collection("data").deleteOne({
+      _id: new ObjectId(id),
+    });
+    res.status(200).send(result);
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
 });
 
-app.listen(4000,()=>{
-    console.log("server connected successfully");
-})
+// Register user
+app.post("/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // check if user exists
+    const userFind = await client.db("CRUD").collection("private").findOne({ email });
+
+    if (userFind) {
+      return res.status(400).send("❌ This user already exists");
+    }
+
+    // create new user
+    const result = await client
+      .db("CRUD")
+      .collection("private")
+      .insertOne({ username, email, password });
+
+    res.status(201).send(result);
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
+});
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+});
