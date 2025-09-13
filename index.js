@@ -19,59 +19,68 @@ app.get("/", (req, res) => {
   res.status(200).send("Hello, Backend is running 🚀");
 });
 
-
-
-// Get all movies
-app.get("/movies", async (req, res) => {
+// Insert one movie
+app.post("/post", async (req, res) => {
   try {
-    const movies = await client.db("CRUD").collection("data").find({}).toArray();
-    res.status(200).send(movies);
-  } catch (err) {
-    res.status(500).send({ error: err.message });
-  }
-});
-
-// Get a single movie by ID
-app.get("/movies/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const movie = await client.db("CRUD").collection("data").findOne({
-      _id: new ObjectId(id),
-    });
-    res.status(200).send(movie);
-  } catch (err) {
-    res.status(500).send({ error: err.message });
-  }
-});
-
-// Add a new movie
-app.post("/movies", async (req, res) => {
-  try {
-    const newMovie = req.body;
-    const result = await client.db("CRUD").collection("data").insertOne(newMovie);
+    const getPostman = req.body;
+    const result = await client.db("CRUD").collection("data").insertOne(getPostman);
     res.status(201).send(result);
   } catch (err) {
     res.status(500).send({ error: err.message });
   }
 });
 
-// Update a movie by ID
-app.put("/movies/:id", async (req, res) => {
+// Insert many movies
+app.post("/postmany", async (req, res) => {
   try {
-    const { id } = req.params;
-    const updatedData = req.body;
-    const result = await client
-      .db("CRUD")
-      .collection("data")
-      .updateOne({ _id: new ObjectId(id) }, { $set: updatedData });
+    const getMany = req.body;
+    const result = await client.db("CRUD").collection("data").insertMany(getMany);
+    res.status(201).send(result);
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
+});
+
+// Get all movies
+app.get("/get", async (req, res) => {
+  try {
+    const result = await client.db("CRUD").collection("data").find({}).toArray();
     res.status(200).send(result);
   } catch (err) {
     res.status(500).send({ error: err.message });
   }
 });
 
-// Delete a movie by ID
-app.delete("/movies/:id", async (req, res) => {
+// Get one movie
+app.get("/getone/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await client.db("CRUD").collection("data").findOne({
+      _id: new ObjectId(id),
+    });
+    res.status(200).send(result);
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
+});
+
+// Update movie
+app.put("/update/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const getPostman = req.body;
+    const result = await client
+      .db("CRUD")
+      .collection("data")
+      .updateOne({ _id: new ObjectId(id) }, { $set: getPostman });
+    res.status(200).send(result);
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
+});
+
+// Delete movie
+app.delete("/delete/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const result = await client.db("CRUD").collection("data").deleteOne({
@@ -83,15 +92,22 @@ app.delete("/movies/:id", async (req, res) => {
   }
 });
 
-
+// Register user
 app.post("/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    const existingUser = await client.db("CRUD").collection("private").findOne({ email });
-    if (existingUser) return res.status(400).send("❌ This user already exists");
+    const userFind = await client.db("CRUD").collection("private").findOne({ email });
 
-    const result = await client.db("CRUD").collection("private").insertOne({ username, email, password });
+    if (userFind) {
+      return res.status(400).send("❌ This user already exists");
+    }
+
+    const result = await client
+      .db("CRUD")
+      .collection("private")
+      .insertOne({ username, email, password });
+
     res.status(201).send(result);
   } catch (err) {
     res.status(500).send({ error: err.message });
@@ -99,4 +115,6 @@ app.post("/register", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+});
